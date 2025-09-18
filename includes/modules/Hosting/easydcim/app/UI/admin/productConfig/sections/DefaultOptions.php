@@ -37,12 +37,21 @@ class DefaultOptions
             {
                 $provisioningServerId = $this->api->os->getOsTemplateForLocation($locationId)->id;
 
-                foreach ($templateList as $key=>$value) {
-                    if ($value->server_id != $provisioningServerId)
-                    {
-                        unset($templateList[$key]);
+                $templateList = array_values(array_filter($templateList, function($tpl) use ($provisioningServerId) {
+                    // Match direct server_id
+                    if (isset($tpl->server_id) && (int)$tpl->server_id === (int)$provisioningServerId) {
+                        return true;
                     }
-                }
+                    // Or match any of the related servers in "servers" array
+                    if (isset($tpl->servers) && is_array($tpl->servers)) {
+                        foreach ($tpl->servers as $srv) {
+                            if (isset($srv->id) && (int)$srv->id === (int)$provisioningServerId) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }));
                 return $templateList;
             }
             return [];
